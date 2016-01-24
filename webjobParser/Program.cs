@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using RestSharp;
@@ -15,9 +14,9 @@ namespace webjobParser
         static void Main()
         {
             const string path = "webJobLogs.json";
-            var client = new RestClient("https://.scm.azurewebsites.net/")
+            var client = new RestClient($"https://{Secrets.AppName}.scm.azurewebsites.net/")
             {
-                Authenticator = new HttpBasicAuthenticator("", "")
+                Authenticator = new HttpBasicAuthenticator($"{Secrets.UserName}", $"{Secrets.Password}")
             };
             const int limit = 100;
             var continuationToken = "";
