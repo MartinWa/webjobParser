@@ -79,6 +79,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Dto\CustomEntry.cs" />
     <Compile Include="Dto\FunctionsInvokes.cs" />
     <Compile Include="Dto\InvocationDetails.cs" />
     <Compile Include="Program.cs" />
