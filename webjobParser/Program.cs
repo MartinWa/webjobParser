@@ -68,22 +68,32 @@ namespace webjobParser
             };
             var running = customEntries.Where(r => r.Status == EntryStatus.Running).OrderByDescending(r => r.Duration);
             result.Add("<h2>Running</h2>");
-            result.Add(@"<table class=""table table-striped"">");
+            result.Add(TableStartTag());
             result.AddRange(running.Select(e => e.ToHtml()));
-            result.Add("</table>");
+            result.Add(TableEndTag());
             var completedFailed = customEntries.Where(r => r.Status == EntryStatus.CompletedFailed);
             result.Add("<h2>Failed</h2>");
             result.Add(@"<table class=""table table-striped"">");
             result.AddRange(completedFailed.Select(e => e.ToHtml()));
-            result.Add("</table>");
+            result.Add(TableEndTag());
             var neverFinished = customEntries.Where(r => r.Status == EntryStatus.NeverFinished);
             result.Add("<h2>Never finished</h2>");
             result.Add(@"<table class=""table table-striped"">");
             result.AddRange(neverFinished.Select(e => e.ToHtml()));
-            result.Add("</table>");
+            result.Add(TableEndTag());
             result.Add("</body>");
             result.Add("</html>");
             File.WriteAllText(resultFile, string.Join(Environment.NewLine,result));
+        }
+
+        private static string TableEndTag()
+        {
+            return "</table>";
+        }
+
+        private static string TableStartTag()
+        {
+            return @"<table class=""table table-striped table-bordered"">";
         }
     }
 }
