@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Queue;
 using Newtonsoft.Json;
 using RestSharp;
 using RestSharp.Authenticators;
@@ -17,6 +14,7 @@ namespace webjobParser
         static void Main()
         {
             const string path = "webJobLogs.json";
+            const string resultFile = "log.html";
             if (!File.Exists(path))
             {
                 var client = new RestClient($"https://{Secrets.AppName}.scm.azurewebsites.net/")
@@ -44,34 +42,6 @@ namespace webjobParser
                     data = functionInvokes.Data;
                     entries.AddRange(data.entries);
                 }
-                //const string groupName = "portalId";
-                //var portalIdRegexString = $@"((?<{groupName}>\d+))";
-                //var portalIdRegex = new Regex(portalIdRegexString, RegexOptions.None);
-                //var logs = new List<WebJobLog>();
-                //foreach (var entry in entries)
-                //{
-                //    var id = entry.id;
-                //    var portalId = 0;
-                //    var match = portalIdRegex.Match(entry.functionDisplayTitle);
-                //    if (match.Success)
-                //    {
-                //        var portalIdString = match.Groups[groupName].Value;
-                //        int.TryParse(portalIdString, out portalId);
-                //    }
-                //    var date = Convert.ToDateTime(entry.whenUtc);
-                //    var duration = TimeSpan.FromMilliseconds(entry.duration);
-                //    var logRequest = new RestRequest($"azurejobs/api/log/output/{id}?start=0", Method.GET);
-                //    var log = client.Execute(logRequest);
-                //    logs.Add(new WebJobLog
-                //    {
-                //        Id = id,
-                //        PortalId = portalId,
-                //        Date = date,
-                //        Duration = duration,
-                //        Log = log.Content
-                //    });
-                //    Console.WriteLine($"Log id {id} portal id {portalId} date {date} duration {duration}");
-                //}
                 var json = JsonConvert.SerializeObject(entries);
                 File.WriteAllText(path, json);
             }
@@ -80,25 +50,72 @@ namespace webjobParser
             var customEntries = allEntries.Select(a => new CustomEntry
             {
                 Id = a.id,
-                FunctionDisplayTitle = a.functionDisplayTitle,
+                Title = a.functionDisplayTitle,
                 Date = Convert.ToDateTime(a.whenUtc),
                 Duration = TimeSpan.FromMilliseconds(a.duration),
                 Status = (EntryStatus)Enum.Parse(typeof(EntryStatus), a.status),
             }).ToList();
-            var running = customEntries.Where(r => r.Status == EntryStatus.Running);
+            var result = new List<string>
+            {
+                "<!DOCTYPE html>",
+                "<html>",
+                "<head>",
+                $"<title>Log from {Secrets.WebJobName}</title>",
+                @"<link rel=""stylesheet"" href=""https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"" integrity=""sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7"" crossorigin=""anonymous"">",
+                "</head>",
+                "<body>",
+                $@"<h1>Log from <a href=""https://{Secrets.AppName.ToLower()}.scm.azurewebsites.net/azurejobs/#/jobs/continuous/{Secrets.WebJobName.ToLower()}"">{Secrets.WebJobName}</a></h1>"
+            };
+            var running = customEntries.Where(r => r.Status == EntryStatus.Running).OrderByDescending(r => r.Duration);
+            result.Add("<h2>Running</h2>");
+            result.Add(@"<table class=""table table-striped"">");
+            result.AddRange(running.Select(e => e.ToHtml()));
+            result.Add("</table>");
             var completedFailed = customEntries.Where(r => r.Status == EntryStatus.CompletedFailed);
+            result.Add("<h2>Failed</h2>");
+            result.Add(@"<table class=""table table-striped"">");
+            result.AddRange(completedFailed.Select(e => e.ToHtml()));
+            result.Add("</table>");
             var neverFinished = customEntries.Where(r => r.Status == EntryStatus.NeverFinished);
-
-            //"CompletedSuccess"
-            //var portalsWithWarnings = allLogs.Where(log => log.Log.Contains("Warning")).OrderBy(l => l.PortalId).ToList();
-            //var storageAccount = CloudStorageAccount.Parse(Secrets.StorageAccountConnectionString);
-            //var queueClient = storageAccount.CreateCloudQueueClient();
-            //var queue = queueClient.GetQueueReference(Secrets.QueueName);
-            //foreach (var log in portalsWithWarnings)
-            //{
-            //    queue.AddMessage(new CloudQueueMessage(log.PortalId.ToString()));
-            //}
+            result.Add("<h2>Never finished</h2>");
+            result.Add(@"<table class=""table table-striped"">");
+            result.AddRange(neverFinished.Select(e => e.ToHtml()));
+            result.Add("</table>");
+            result.Add("</body>");
+            result.Add("</html>");
+            File.WriteAllText(resultFile, string.Join(Environment.NewLine,result));
         }
     }
 }
 
+
+
+
+//const string groupName = "portalId";
+//var portalIdRegexString = $@"((?<{groupName}>\d+))";
+//var portalIdRegex = new Regex(portalIdRegexString, RegexOptions.None);
+//var logs = new List<WebJobLog>();
+//foreach (var entry in entries)
+//{
+//    var id = entry.id;
+//    var portalId = 0;
+//    var match = portalIdRegex.Match(entry.functionDisplayTitle);
+//    if (match.Success)
+//    {
+//        var portalIdString = match.Groups[groupName].Value;
+//        int.TryParse(portalIdString, out portalId);
+//    }
+//    var date = Convert.ToDateTime(entry.whenUtc);
+//    var duration = TimeSpan.FromMilliseconds(entry.duration);
+//    var logRequest = new RestRequest($"azurejobs/api/log/output/{id}?start=0", Method.GET);
+//    var log = client.Execute(logRequest);
+//    logs.Add(new WebJobLog
+//    {
+//        Id = id,
+//        PortalId = portalId,
+//        Date = date,
+//        Duration = duration,
+//        Log = log.Content
+//    });
+//    Console.WriteLine($"Log id {id} portal id {portalId} date {date} duration {duration}");
+//}
