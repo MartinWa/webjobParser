@@ -71,12 +71,12 @@ namespace webjobParser
             result.Add(TableStartTag());
             result.AddRange(running.Select(e => e.ToHtml()));
             result.Add(TableEndTag());
-            var completedFailed = customEntries.Where(r => r.Status == EntryStatus.CompletedFailed);
+            var completedFailed = customEntries.Where(r => r.Status == EntryStatus.CompletedFailed).OrderByDescending(r => r.Date);
             result.Add("<h2>Failed</h2>");
             result.Add(@"<table class=""table table-striped"">");
             result.AddRange(completedFailed.Select(e => e.ToHtml()));
             result.Add(TableEndTag());
-            var neverFinished = customEntries.Where(r => r.Status == EntryStatus.NeverFinished);
+            var neverFinished = customEntries.Where(r => r.Status == EntryStatus.NeverFinished).OrderByDescending(r => r.Date); ;
             result.Add("<h2>Never finished</h2>");
             result.Add(@"<table class=""table table-striped"">");
             result.AddRange(neverFinished.Select(e => e.ToHtml()));
