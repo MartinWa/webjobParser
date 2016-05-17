@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using Newtonsoft.Json;
 using RestSharp;
 using RestSharp.Authenticators;
@@ -28,6 +29,11 @@ namespace webjobParser
                         $"azurejobs/api/jobs/continuous/{Secrets.WebJobName}/functions?limit={limit}&continuationToken={continuationToken}",
                         Method.GET);
                 var functionInvokes = client.Execute<FunctionsInvokes>(invocationsRequest);
+                if (functionInvokes.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    Console.WriteLine("Unauthorized");
+                    return;
+                }
                 var data = functionInvokes.Data;
                 var entries = new List<Entry>();
                 entries.AddRange(data.entries);
@@ -76,7 +82,7 @@ namespace webjobParser
             result.Add(@"<table class=""table table-striped"">");
             result.AddRange(completedFailed.Select(e => e.ToHtml()));
             result.Add(TableEndTag());
-            var neverFinished = customEntries.Where(r => r.Status == EntryStatus.NeverFinished).OrderByDescending(r => r.Date); ;
+            var neverFinished = customEntries.Where(r => r.Status == EntryStatus.NeverFinished).OrderByDescending(r => r.Date);
             result.Add("<h2>Never finished</h2>");
             result.Add(@"<table class=""table table-striped"">");
             result.AddRange(neverFinished.Select(e => e.ToHtml()));
